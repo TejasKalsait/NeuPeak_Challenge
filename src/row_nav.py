@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import rclpy
 
 '''
     Test Description:
@@ -41,16 +42,32 @@ def plot_row_pointcloud(file):
     """
     row_np_array = np.load(file)
     row_pointcloud = row_np_array['arr_0']
+    row_pointcloud = np.delete(row_pointcloud, 1, axis = 1)
+
+    print("Before shape", row_pointcloud.shape)
+    row_pointcloud = np.unique(row_pointcloud, axis = 0)
+    print("After shape", row_pointcloud.shape)
+    
+    
+    # Extract leftmost and rightmost points
+    sorted_indices = np.argsort(row_pointcloud[:, 1])[::-1]
+    row_pointcloud = row_pointcloud[sorted_indices]
+    
+
 
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.view_init(azim=0, elev=-180)
-    ax.scatter(row_pointcloud[:, 2], row_pointcloud[:, 0], row_pointcloud[:, 1], s = 1)
-    print(row_pointcloud[0, 0], row_pointcloud[0, 1], row_pointcloud[0, 2])
+    ax = fig.add_subplot()
+    ax.scatter(row_pointcloud[:, 0], row_pointcloud[:, 1], s = 0.1)
+
+    ax.scatter(row_pointcloud[306, 0], row_pointcloud[1000, 1], c = "r")
+    #ax.scatter(row_pointcloud[-1, 0], row_pointcloud[-1, 1], c = "r")
+
+    ax.scatter(row_pointcloud[9000, 0], row_pointcloud[9000, 1], c = "g")
+    #ax.scatter(row_pointcloud[-10000, 0], row_pointcloud[-10000, 1], c = "g")
     plt.show()
 
     return row_pointcloud
 
 
 if __name__ == "__main__":
-    pointcloud = plot_row_pointcloud("2.npz")
+    pointcloud = plot_row_pointcloud("1.npz")
