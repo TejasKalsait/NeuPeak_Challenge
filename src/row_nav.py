@@ -227,14 +227,23 @@ class Angle_Publisher(Node):
 
 # DRIVER CODE
 def main():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', type = str, help = "File name. Default is 3.npz", default = "3.npz")
+    parser.add_argument('-d', '--debug', type = bool, help = "Debig mode flag. Prints information and displays plots", default = False)
+    parser.add_argument('-n', '--num-of-points', type = int, help = "Number of points to extract from each wall. (Default is 4)", default = 4)
+    args = parser.parse_args()
+
     rclpy.init()
 
-    filename = "4.npz"
+    filename = args.input
+
     # If True, Prints information and displays plots
-    debug_flag = False
+    debug_flag = args.debug
+
     # Refer to the README.md or (image name)
     # The number 4 works perfect for whichever depth camera the bot is using in the example
-    num_of_points_to_extract = 4
+    num_of_points_to_extract = args.num_of_points
 
     # We can use the rclpy spin functionality to keep the node alive and keep publishing to the topic at some frequency
     # but since we need to publish only once here, I am calling the function only once without spin.
