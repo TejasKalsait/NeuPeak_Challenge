@@ -25,7 +25,7 @@ class Angle_Publisher(Node):
         sorted_indices = np.argsort(row_pointcloud[:, 1])[::-1]
         row_pointcloud = row_pointcloud[sorted_indices]
 
-        print("After deleting height-axis, removing duplicates, and sorting with x-values, shape is", row_pointcloud.shape)
+        #print("After deleting height-axis, removing duplicates, and sorting with x-values, shape is", row_pointcloud.shape)
 
         return row_pointcloud
     
@@ -36,7 +36,7 @@ class Angle_Publisher(Node):
         num_of_pivots = 4
         partitions = np.linspace(max_on_y, 0.0, num_of_pivots)
 
-        print("Extracting Edge points")
+        #print("Extracting Edge points")
 
         for i in range(1, len(partitions)):
 
@@ -104,7 +104,7 @@ class Angle_Publisher(Node):
             print("Found the right wall fully straight")
             return None, None, None, None
         
-        print("Left wall slope is", l_slope, "and right wall slope is", r_slope)
+        # print("Left wall slope is", l_slope, "and right wall slope is", r_slope)
 
         l_y_intercept = -(l_slope * lx2) + ly1
         l_x_intercept = lx1 - (ly1 / l_slope)
@@ -112,7 +112,27 @@ class Angle_Publisher(Node):
         r_y_intercept = -(r_slope * rx2) + ry1
         r_x_intercept = rx1 - (ry1 / r_slope)
 
-        return (l_x_intercept, l_y_intercept, r_x_intercept, r_y_intercept)
+        return (abs(l_x_intercept), abs(l_y_intercept), l_slope, abs(r_x_intercept), abs(r_y_intercept), r_slope)
+    
+    def calculateAnglefromIntercepts(self, left_x_intercept, left_y_intercept, left_slope, right_x_intercept, right_y_intercept, right_slope):
+
+        if left_x_intercept == None or right_x_intercept == None:
+            print("Found parallel walls with infinite slope")
+            return 0.0
+
+        # Left line angle
+        if left_slope >= 0.0:
+            left_angle_turn = 90 - np.degrees(np.arctan(left_y_intercept/left_x_intercept))
+        else:
+            left_angle_turn = -(90 - np.degrees(np.arctan(left_y_intercept/left_x_intercept)))
+
+        # Right line angle
+        if right_slope >= 0:
+            right_angle_turn = 90 - np.degrees(np.arctan(right_y_intercept/right_x_intercept))
+        else:
+            right_angle_turn = -(90 - np.degrees(np.arctan(right_y_intercept/right_x_intercept)))
+
+        return (left_angle_turn + right_angle_turn) / 2.0
 
     
     def anglePublishOnce(self):
@@ -126,22 +146,13 @@ class Angle_Publisher(Node):
 
         row_pointcloud = self.preprocessPoints(row_pointcloud)
 
-        left_edge_points, right_edge_points = self.extractEdgePoints(row_pointcloud, plot = True)
+        left_edge_points, right_edge_points = self.extractEdgePoints(row_pointcloud, plot = False)
 
-        left_x_intercept, left_y_intercept, right_x_intercept, right_y_intercept = self.calculateInterceptfromPoints(left_edge_points, right_edge_points)
-
-        if not left_x_intercept or not right_x_intercept:
-            #Publish 0 deg
-            print("Zero Degree Turn")
-
-        # Left line angle
-        left_angle_turn = 90 + np.degrees(np.arctan(left_y_intercept/left_x_intercept))
-
-        # Right line angle
-        right_angle_turn = 90 + np.degrees(np.arctan(right_y_intercept/right_x_intercept))
-        print((left_angle_turn + right_angle_turn) / 2.0)
+        left_x_intercept, left_y_intercept, left_slope, right_x_intercept, right_y_intercept, right_slope = self.calculateInterceptfromPoints(left_edge_points, right_edge_points)
         
-
+        angle_to_turn = self.calculateAnglefromIntercepts(left_x_intercept, left_y_intercept, left_slope, right_x_intercept, right_y_intercept, right_slope)
+        
+        print("The robot should turn", angle_to_turn, "degrees")
 
 
 def main(args=None):
