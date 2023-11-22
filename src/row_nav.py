@@ -46,6 +46,7 @@ class Angle_Publisher(Node):
         self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
         self.filename = filename
         self.isdebug = debug
+        self.end_of_row = False
         self.num_of_points = num_points
 
     def preprocessPoints(self, row_pointcloud):
@@ -204,7 +205,7 @@ class Angle_Publisher(Node):
         row_pointcloud = self.preprocessPoints(row_pointcloud)
 
         # Extracts #self.num_of_points - 2' points on each wall
-        left_edge_points, right_edge_points = self.extractEdgePoints(row_pointcloud, plot = False)
+        left_edge_points, right_edge_points = self.extractEdgePoints(row_pointcloud)
 
         # Returns the slopes and intercepts of the two walls which is used to calculate the angle
         left_x_intercept, left_y_intercept, left_slope, right_x_intercept, right_y_intercept, right_slope = self.calculateInterceptfromPoints(left_edge_points, right_edge_points)
@@ -217,6 +218,8 @@ class Angle_Publisher(Node):
         # Publishes the Twist message on the topic cmd_vel
         self.publishTwistAngle(angle_to_turn, self.publisher)
 
+        return angle_to_turn, self.end_of_row
+
 
 
 
@@ -226,7 +229,7 @@ class Angle_Publisher(Node):
 def main():
     rclpy.init()
 
-    filename = "1.npz"
+    filename = "4.npz"
     # If True, Prints information and displays plots
     debug_flag = False
     # Refer to the README.md or (image name)
@@ -237,7 +240,7 @@ def main():
     # but since we need to publish only once here, I am calling the function only once without spin.
     
     angle_publisher = Angle_Publisher(filename, debug_flag, num_of_points_to_extract)
-    angle_publisher.anglePublishOnce()
+    angular_rate, end_of_row = angle_publisher.anglePublishOnce()
 
     angle_publisher.destroy_node()
     rclpy.shutdown()
