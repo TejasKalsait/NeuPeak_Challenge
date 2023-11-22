@@ -11,7 +11,7 @@ class Angle_Publisher(Node):
 
     def __init__(self):
         super().__init__('angle_publisher')
-        self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
 
     def preprocessPoints(self, row_pointcloud):
 
@@ -134,6 +134,13 @@ class Angle_Publisher(Node):
 
         return (left_angle_turn + right_angle_turn) / 2.0
 
+    def publishTwistAngle(self, angle, publisher):
+
+        twist_msg = Twist()
+        twist_msg.angular.z = angle
+
+        publisher.publish(twist_msg)
+
     
     def anglePublishOnce(self):
 
@@ -154,16 +161,17 @@ class Angle_Publisher(Node):
         
         print("The robot should turn", angle_to_turn, "degrees")
 
+        self.publishTwistAngle(angle_to_turn, self.publisher)
+
 
 def main(args=None):
     rclpy.init(args=args)
 
     angle_publisher = Angle_Publisher()
-    angle_publisher.anglePublishOnce()        
+    angle_publisher.anglePublishOnce()
 
-
-    angle_publisher.destroy_node()
-    rclpy.shutdown()
+    # angle_publisher.destroy_node()
+    # rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
