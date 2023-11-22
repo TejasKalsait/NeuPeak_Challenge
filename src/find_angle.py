@@ -33,9 +33,8 @@ class Angle_Publisher(Node):
 
         left_points, right_points = [], []
         max_on_y = row_pointcloud[0,1]
-        num_of_pivots = 10
+        num_of_pivots = 30
         partitions = np.linspace(max_on_y, 0.0, num_of_pivots)
-        # print(partitions)
 
         print("Extracting Edge points")
 
@@ -83,21 +82,21 @@ class Angle_Publisher(Node):
 
         return left_points, right_points
 
-
-    
     
     def anglePublishOnce(self):
 
-        
-        # Opening file
-        row_np_array = np.load("../Depth_Output/3.npz")
-        row_pointcloud = row_np_array['arr_0']
+        try:
+            # Opening file
+            row_np_array = np.load("../Depth_Output/2.npz")
+            row_pointcloud = row_np_array['arr_0']
+        except Exception as e:
+            print(f"Error opening the .npz file {e}")
 
         row_pointcloud = self.preprocessPoints(row_pointcloud)
 
         left_edge_points, right_edge_points = self.extractEdgePoints(row_pointcloud, plot = True)
 
-        return
+        
 
 
 def main(args=None):
