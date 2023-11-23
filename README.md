@@ -14,11 +14,11 @@
 
 - Utilizing efficient techniques, I identified points on both walls without imposing a heavy computational burden. By finding the X-intercept and Y-intercept of the lines forming the walls, I could calculate the angles at which they are turned using the arctangent function.
 
-- For a clearer understanding, refer to the image below.
+![alt text](https://github.com/TejasKalsait/NeuPeak_Challenge/blob/main/top_down_diagram.png?raw=true)
 
 - The point cloud was segmented, and the furthest left and furthest right points in each segment were determined. These points on the wall were then utilized to calculate slopes and intercepts. 
 
-- See the image below for a visual representation.
+![alt text](https://github.com/TejasKalsait/NeuPeak_Challenge/blob/main/Points_view.png?raw=true)
 
 - To enhance accuracy, I computed the average of the angles obtained from both walls.
 
