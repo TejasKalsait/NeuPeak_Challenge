@@ -2,9 +2,9 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 import numpy as np
-import os
 import argparse
 import matplotlib.pyplot as plt
+import time
 
 '''
     Test Description:
@@ -213,7 +213,7 @@ class Angle_Publisher(Node):
         # Returns the angle to turn by calculating the arctan
         angle_to_turn = self.calculateAnglefromIntercepts(left_x_intercept, left_y_intercept, left_slope, right_x_intercept, right_y_intercept, right_slope)
         
-        print("The robot should turn", angle_to_turn, "degrees")
+        print("The robot should turn", angle_to_turn, "degrees and end_of_row flag is", self.end_of_row)
 
         # Publishes the Twist message on the topic cmd_vel
         self.publishTwistAngle(angle_to_turn, self.publisher)
@@ -231,10 +231,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type = str, help = "File name. Default is 3.npz", default = "3.npz")
     parser.add_argument('-d', '--debug', type = bool, help = "Debig mode flag. Prints information and displays plots", default = False)
-    parser.add_argument('-n', '--num-of-points', type = int, help = "Number of points to extract from each wall. (Default is 4)", default = 4)
+    parser.add_argument('-n', '--num-of-points', type = int, help = "Number of points to extract from each wall. (Default is 2)", default = 2)
     args = parser.parse_args()
 
     rclpy.init()
+    node = rclpy.create_node('row_nav')
 
     filename = args.input
 
@@ -242,15 +243,17 @@ def main():
     debug_flag = args.debug
 
     # Refer to the README.md or (image name)
-    # The number 4 works perfect for whichever depth camera the bot is using in the example
-    num_of_points_to_extract = args.num_of_points
+    # The number 2 works perfect for whichever depth camera the bot is using in the example
+    num_of_points_to_extract = args.num_of_points + 2
 
     # We can use the rclpy spin functionality to keep the node alive and keep publishing to the topic at some frequency
     # but since we need to publish only once here, I am calling the function only once without spin.
     
+    # Constructor
     angle_publisher = Angle_Publisher(filename, debug_flag, num_of_points_to_extract)
     angular_rate, end_of_row = angle_publisher.anglePublishOnce()
 
+    # cleanup
     angle_publisher.destroy_node()
     rclpy.shutdown()
 # _______________________________________________________________________________________________________________________________________________
