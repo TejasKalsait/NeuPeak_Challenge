@@ -4,13 +4,12 @@ from geometry_msgs.msg import Twist
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
-import time
 
 
 class Angle_Publisher(Node):
 
     def __init__(self, filename, debug, num_points):
-        super().__init__('angle_publisher')
+        super().__init__('row_nav')
         self.publisher = self.create_publisher(Twist, 'cmd_vel', 10)
         self.filename = filename
         self.isdebug = debug
@@ -36,7 +35,6 @@ class Angle_Publisher(Node):
         # Visualize the walls
         if self.isdebug:
             print("Showing the walls...")
-            print(len(walls))
             self.plot_row_pointcloud(walls)
 
         if len(walls) == 0:
@@ -115,8 +113,6 @@ class Angle_Publisher(Node):
             fig = plt.figure()
             ax = fig.add_subplot()
             ax.scatter(row_pointcloud[:, 0], row_pointcloud[:, 1], s = 0.1)
-            ax.scatter(row_pointcloud[0,0], max_on_y, c = 'g')
-            ax.scatter(row_pointcloud[-1,0], min_on_y, c = 'g')
             ax.scatter(left_points[:, 0], left_points[:, 1], c = 'r')
             ax.scatter(right_points[:, 0], right_points[:, 1], c = 'r')
 
@@ -202,7 +198,6 @@ class Angle_Publisher(Node):
         try:
             # Opening file
             row_np_array = np.load("../Depth_Output/" + self.filename)
-            #row_np_array = np.load("Depth_Output/" + self.filename)
             row_pointcloud = row_np_array['arr_0']
         except Exception as e:
             print(f"Error opening the .npz file {e}")
@@ -254,7 +249,6 @@ def main():
     args = parser.parse_args()
 
     rclpy.init()
-    node = rclpy.create_node('row_nav')
 
     filename = args.input
 
