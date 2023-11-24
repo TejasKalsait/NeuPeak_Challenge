@@ -1,7 +1,18 @@
-# NeuPeak_Challenge
+# NeuPeak Challenge (Successfully Completed all 4 Tasks)
 
-> **_NOTE:_**  I have followed the standard ROS format for the directory structure. The row_nav.py and test_row_nav.py are located inside the `/src` directory.
+> [!NOTE]
+> I have followed the standard ROS format for the directory structure. The row_nav.py and test_row_nav.py are located inside the `/src` directory.
+> 
 > In this case, I am publishing a Twist message to the `/cmd_vel` topic only once. However, we can keep publishing the same by using the loop until the ROS node is active.
+
+## Arguments Explained
+> [!IMPORTANT]
+> `-d` or `--debug` flag when set as True will display plots and show print statements
+> 
+> `-i` or `--input` File name as string input. The default is 3.npz. The code handles the directory navigation.
+> 
+> `-n` or `--num-of-points` Number of points to extract from each wall to form a line. Highly recommended to keep the default value (2) which works really well for this depth sensor.
+
 
 
 ## Row Centering Algorithm Description:
@@ -20,16 +31,29 @@
 
 ![alt text](https://github.com/TejasKalsait/NeuPeak_Challenge/blob/main/Points_view.png?raw=true)
 
-- To enhance accuracy, I computed the average of the angles obtained from both walls.
+- To enhance accuracy, I computed the average of the angles obtained from both walls because in the real-world scenario, no wall is going to be perfectly straight and this takes into account both the walls and reduces the error.
 
 ## Functions Explained
 
 1. `anglePublishOne` - Starting function that contains the overall pattern of the execution.
-2. `preprocessPoints` - Function that takes a point cloud, deletes the height axis, removes duplicates, and sorts from furthest to nearest along the row.
-3. `extractEdgePoints` - Extract points on both the wall to find slopes. (Put arg `--debug  True` to visualize)
-4. `calculateInterceptfromPoints` - Returns the slopes and intercepts of the two walls which are used to calculate the angle.
-5. `calculateAnglefromIntercept` - Returns the angle to turn by calculating the arctan. (right turn -> positive and left turn -> negative)
-6. `publishTwistAngle` - Publishes the angle obtained to the topic cmd_vel and returns the angular_rate and end_of_row to the main function.
+2. `endOdRow` - Tries to extract the walls and figures out if the robot is at the end of the row.
+3. `plot_row_pointcloud` - Plots the 3D point cloud using matplotlib.
+4. `preprocessPoints` - Function that takes a point cloud, delete the height axis, removes duplicates, and sorts from furthest to nearest along the row.
+5. `extractEdgePoints` - Extract points on both the wall to find slopes. (Put arg `--debug  True` to visualize)
+6. `calculateInterceptfromPoints` - Returns the slopes and intercepts of the two walls which are used to calculate the angle.
+7. `calculateAnglefromIntercept` - Returns the angle to turn by calculating the arctan. (right turn -> positive and left turn -> negative)
+8. `publishTwistAngle` - Publishes the angle obtained to the topic cmd_vel and returns the angular_rate and end_of_row to the main function.
 
-> **_NOTE:_** Given more time, I'd definitely try to improve the accuracy of the system. Although, even right now it is pretty accurate I believe. If run continuously on the robot at least 10Hz (the algorithm takes less than 0.1 sec to run), it should give pretty accurate results.
-> However, I strongly feel that using 2 RGB cameras to calculate depth is much cheaper, much faster to run, and less computationally expensive.
+## Testing Script
+
+> [!TIP]
+> Run `python3 test_row_nav.py` inside the `/src` directory which checks all four files for expected results and also prints the results.
+
+
+> [!NOTE]
+> Given more time, I'd definitely try to improve the accuracy of the system. Although, even right now it is pretty accurate I believe considering the unevenness in the real-world walls at the farm. If run continuously on the robot at least 10Hz (the algorithm takes less than 0.1 sec to run), it will keep the robot straight always.
+> 
+> However, I strongly feel that using two RGB cameras to calculate depth is much cheaper, less computationally expensive, and low maintenance which will help in the longer run.
+
+## Please reach out to me at kalsaittejas10@gmail.com or at +1(737)420-5580 for any questions. I'll be happy to discuss the algorithm.
+## Thank You. :)
