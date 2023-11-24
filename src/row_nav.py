@@ -6,38 +6,6 @@ import argparse
 import matplotlib.pyplot as plt
 import time
 
-'''
-    Test Description:
-
-    [TASK 1]
-    Create an algorithm that takes in the following:
-        row_pointcloud : scanned pointcloud (3D numpy array) for the row from depth camera
-
-    And outputs the following:
-        angular_rate : rate in deg/s the robot should turn at such that it will centre itself in the row
-	
-	The goal is to genereate a target angular rate that the robot uses to turn. Positive rate means robot
-	will turn right, negative rate means robot will turn left. Assume the robot moves forward at some constant velocity
-	set by the user. Your algorithm then generates angular rates for the robot while it moves through the row. The ideal angular 
-	rate will make it so that the robot is always centred in the row. When the robot is perfectly centred the angular rate should be 0
-	since we just need the robot to go straight.
-
-    [TASK 2]
-    Implement a ROS Node that will output correction anglular rate for the robot. Publish cmd_vel to a twist
-	ROS topic
-
-    [TASK 3]
-    unit-test: Write a unit test script using standard Python unittest library
-
-    [OPTIONAL BONUS 1]
-    end_of_row: Boolean parameter that is True if end of row is detected
-
-    
-
-
-    Evaluation Criteria: Method runtime. Lower is better.
-'''
-
 
 class Angle_Publisher(Node):
 
@@ -47,13 +15,38 @@ class Angle_Publisher(Node):
         self.filename = filename
         self.isdebug = debug
         self.end_of_row = False
-        self.num_of_points = num_points
+        self.num_of_points = num_points  # Done to create a more generalized algorithm. Two points on both sides works very well but instead of hardcoding, we could change this value. 
+        self.wall_height = 0.4           # Works wonderfully well for this depth sensor and wall settings. But if in future we upgrade the sensor, we just have to change this parameter
 
+    def plot_row_pointcloud(self, pointcloud):
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.view_init(azim=0, elev=-180)
+        ax.scatter(pointcloud[:, 2], pointcloud[:, 0], pointcloud[:, 1], s = 1)
+        print(len(pointcloud), "total points found")
+        plt.show()
+
+    def endOfRow(self, row_pointcloud):
+        # Changes the variable self.end_of_row to True if it is the end of the road 
+        
+        # Extract the points that are above a certain threshold height which we consider as a wall
+        walls = row_pointcloud[row_pointcloud[:,1] < -self.wall_height]
+
+        # Visualize the walls
+        if self.isdebug:
+            print("Showing the walls...")
+            print(len(walls))
+            self.plot_row_pointcloud(walls)
+
+        if len(walls) == 0:
+            self.end_of_row = True
+    
     def preprocessPoints(self, row_pointcloud):
 
         # Deleting the height information as my algorithm doesnt need it
         row_pointcloud = np.delete(row_pointcloud, 1, axis = 1)
-
+        
         # Remove duplicate rows 
         row_pointcloud = np.unique(row_pointcloud, axis = 0)
 
@@ -62,7 +55,7 @@ class Angle_Publisher(Node):
         row_pointcloud = row_pointcloud[sorted_indices]
 
         if self.isdebug:
-            print("After deleting height-axis, removing duplicates, and sorting with x-values, shape is", row_pointcloud.shape)
+            print("After deleting height-axis, removing duplicates, extracting walls, and sorting with x-values, shape is", row_pointcloud.shape)
 
         return row_pointcloud
     
@@ -72,12 +65,18 @@ class Angle_Publisher(Node):
         left_points, right_points = [], []
 
         # Diving the Y-direction into segments
+        min_on_y = 0.0
         max_on_y = row_pointcloud[0,1]
-        partitions = np.linspace(max_on_y, 0.0, self.num_of_points)
+        partitions = np.linspace(max_on_y, min_on_y, self.num_of_points)
 
         if self.isdebug:
             print("Starting to extract Points on the Walls")
 
+        
+        # Edge case if the row_pointcloud has very few points for some reason 
+        if len(row_pointcloud) < (self.num_of_points * 2):
+            print("Sensor error! Enough points not found. Total points after preprocessing are", len(row_pointcloud))
+            return left_points, right_points
         
         # This loop extracts the points on the walls. To visualize these points, switch debug_flag = True in the driver code
         for i in range(1, len(partitions)):
@@ -116,7 +115,8 @@ class Angle_Publisher(Node):
             fig = plt.figure()
             ax = fig.add_subplot()
             ax.scatter(row_pointcloud[:, 0], row_pointcloud[:, 1], s = 0.1)
-
+            ax.scatter(row_pointcloud[0,0], max_on_y, c = 'g')
+            ax.scatter(row_pointcloud[-1,0], min_on_y, c = 'g')
             ax.scatter(left_points[:, 0], left_points[:, 1], c = 'r')
             ax.scatter(right_points[:, 0], right_points[:, 1], c = 'r')
 
@@ -126,6 +126,11 @@ class Angle_Publisher(Node):
     
     def calculateInterceptfromPoints(self, left_points, right_points):
 
+        # Error handeling! If no points are extracted or points are less than 2 on both sides
+        if len(left_points) < 2 or len(right_points) < 2:
+            print("Not enought points extracted. Total points on the left wall ->", len(left_points), "and right wall ->", len(right_points))
+            return None, None, None, None
+        
         # Extracting two points from the left wall
         lx1, ly1 = left_points[0]
         lx2, ly2 = left_points[1]
@@ -197,10 +202,26 @@ class Angle_Publisher(Node):
         try:
             # Opening file
             row_np_array = np.load("../Depth_Output/" + self.filename)
+            #row_np_array = np.load("Depth_Output/" + self.filename)
             row_pointcloud = row_np_array['arr_0']
         except Exception as e:
             print(f"Error opening the .npz file {e}")
+            return None, None
 
+        # To visualie the pointcloud. Put debug flag = True
+        if self.isdebug:
+            print("Showing the initial pointcloud...")
+            self.plot_row_pointcloud(row_pointcloud)
+
+        # Determine if it is the end of the road. (This will set the self.end_of_row flag)
+        self.endOfRow(row_pointcloud)
+
+        # If we determine that this is the end of the row, we don't want to compute the angular_rate based on walls. As there are no walls here.
+        if self.end_of_row == True:
+            # Changing it to False just incase we want to run this in a loop without construting the class again
+            self.end_of_row = False
+            return 0.0, True
+        
         # Function that takes a pointcloud, deletes height axis, removes duplicates, and sorts from furthest to nearest along the row
         row_pointcloud = self.preprocessPoints(row_pointcloud)
 
@@ -212,8 +233,6 @@ class Angle_Publisher(Node):
         
         # Returns the angle to turn by calculating the arctan
         angle_to_turn = self.calculateAnglefromIntercepts(left_x_intercept, left_y_intercept, left_slope, right_x_intercept, right_y_intercept, right_slope)
-        
-        print("The robot should turn", angle_to_turn, "degrees and end_of_row flag is", self.end_of_row)
 
         # Publishes the Twist message on the topic cmd_vel
         self.publishTwistAngle(angle_to_turn, self.publisher)
@@ -249,9 +268,11 @@ def main():
     # We can use the rclpy spin functionality to keep the node alive and keep publishing to the topic at some frequency
     # but since we need to publish only once here, I am calling the function only once without spin.
     
-    # Constructor
+    # Constructor and base function in the class
     angle_publisher = Angle_Publisher(filename, debug_flag, num_of_points_to_extract)
     angular_rate, end_of_row = angle_publisher.anglePublishOnce()
+
+    print("The robot should turn", angular_rate, "degrees and end_of_row flag is", end_of_row)
 
     # cleanup
     angle_publisher.destroy_node()

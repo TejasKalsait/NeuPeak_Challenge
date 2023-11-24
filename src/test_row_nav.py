@@ -20,7 +20,7 @@ class TestMyMath(unittest.TestCase):
         angle_pub = Angle_Publisher("2.npz", False, 4)
         angular_turn , end_of_row= angle_pub.anglePublishOnce()
         self.assertIsInstance(angular_turn, (int, float))
-        self.assertEqual(end_of_row, False)
+        self.assertEqual(end_of_row, True)
         self.assertTrue(-90.0 < angular_turn < 90.0)
 
     # Test for 3.npz
